@@ -69,9 +69,19 @@ h1 {
 
 /* Game information */
 .game-info {
-    margin: 20px 0;
+    margin: 20px 0 8px;
     font-size: 1.2rem;
     font-weight: bold;
+}
+
+.match-info {
+    margin-bottom: 20px;
+    font-size: 1rem;
+    color: #f8f8f8;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: inline-block;
 }
 
 .current-player {

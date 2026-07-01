@@ -9,6 +9,7 @@ let scores = {
     O: 0,
     draws: 0
 };
+const winTarget = 5;
 
 // Winning combinations
 const winningCombinations = [
@@ -40,7 +41,7 @@ function initializeGame() {
     });
 
     // Add event listeners to buttons
-    resetButton.addEventListener('click', resetGame);
+    resetButton.addEventListener('click', startNewMatch);
     clearScoreButton.addEventListener('click', clearScores);
 
     // Update display
@@ -128,9 +129,15 @@ function handleWin(winner) {
     scores[winner]++;
     updateScoreDisplay();
     
-    // Show win message with emojis
-    gameStatusElement.textContent = `🎉 Player ${winner} Wins! 🎉`;
-    gameStatusElement.classList.add('winner');
+    // Check if this player reached the match target
+    if (scores[winner] >= winTarget) {
+        gameStatusElement.textContent = `🏆 Player ${winner} Wins the Match! 🏆`;
+        gameStatusElement.classList.add('winner');
+    } else {
+        // Show win message with emojis
+        gameStatusElement.textContent = `🎉 Player ${winner} Wins! 🎉`;
+        gameStatusElement.classList.add('winner');
+    }
     
     // Disable all cells
     cells.forEach(cell => {
@@ -139,6 +146,13 @@ function handleWin(winner) {
     
     // Play win sound effect (visual feedback)
     celebrateWin();
+
+    // If the match is not finished yet, start a new round automatically after a short delay
+    if (scores[winner] < winTarget) {
+        setTimeout(() => {
+            startNewRound();
+        }, 1400);
+    }
 }
 
 // Handle draw
@@ -154,6 +168,11 @@ function handleDraw() {
     cells.forEach(cell => {
         cell.classList.add('disabled');
     });
+
+    // Start a new round automatically after a short delay
+    setTimeout(() => {
+        startNewRound();
+    }, 1400);
 }
 
 // Highlight winning cells
@@ -174,9 +193,40 @@ function celebrateWin() {
     }, 1000);
 }
 
-// Reset game
-function resetGame() {
-    // Reset game state
+// Start a fresh match (reset scores and board)
+function startNewMatch() {
+    currentPlayer = 'X';
+    gameBoard = ['', '', '', '', '', '', '', '', ''];
+    gameActive = true;
+    scores = {
+        X: 0,
+        O: 0,
+        draws: 0
+    };
+    
+    // Reset cells
+    cells.forEach(cell => {
+        cell.textContent = '';
+        cell.classList.remove('x', 'o', 'disabled', 'winning-cell');
+    });
+    
+    // Reset status for a fresh match
+    gameStatusElement.textContent = 'New game started!';
+    gameStatusElement.classList.remove('winner', 'draw');
+    
+    // Update display
+    updateDisplay();
+    
+    // Add reset animation
+    const boardElement = document.querySelector('.game-board');
+    boardElement.style.animation = 'pulse 0.5s ease-in-out';
+    setTimeout(() => {
+        boardElement.style.animation = '';
+    }, 500);
+}
+
+// Start the next round without resetting scores
+function startNewRound() {
     currentPlayer = 'X';
     gameBoard = ['', '', '', '', '', '', '', '', ''];
     gameActive = true;
@@ -187,8 +237,8 @@ function resetGame() {
         cell.classList.remove('x', 'o', 'disabled', 'winning-cell');
     });
     
-    // Reset status
-    gameStatusElement.textContent = 'Game in progress...';
+    // Reset status for a fresh round
+    gameStatusElement.textContent = 'Round started!';
     gameStatusElement.classList.remove('winner', 'draw');
     
     // Update display
@@ -212,7 +262,7 @@ function clearScores() {
     updateScoreDisplay();
 
     // Also reset the current game so a fresh round starts
-    resetGame();
+    startNewMatch();
 
     // Add clear animation (trigger after reset so both animate independently)
     const scoreBoard = document.querySelector('.score-board');
@@ -346,6 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadGameStats();
     initializeGame();
     addHoverEffects();
+    gameStatusElement.textContent = 'Ready to play!';
     
     // Add welcome message
     console.log('🎮 Tic Tac Toe Game Loaded!');
