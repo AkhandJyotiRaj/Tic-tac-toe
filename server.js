@@ -290,6 +290,6 @@ async function startServer(port) {
   });
 }
 
-startServer(Number(process.env.PORT) || 5000).catch((error) => {
+startServer(Number(process.env.PORT) || 5001).catch((error) => {
   console.error(error);
 });
