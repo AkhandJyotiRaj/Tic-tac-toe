@@ -35,6 +35,8 @@ const scoreOElement = document.getElementById('scoreO');
 const scoreDrawElement = document.getElementById('scoreDraw');
 
 // Multiplayer DOM elements
+const lobbyCard = document.getElementById('lobbyCard');
+const roomDetailsCard = document.getElementById('roomDetailsCard');
 const onlineActionsPanel = document.getElementById('onlineActionsPanel');
 const playAIBtn = document.getElementById('playAIBtn');
 const createRoomBtn = document.getElementById('createRoomBtn');
@@ -73,6 +75,7 @@ let playerId = null; // 0 for X (creator), 1 for O (joiner)
 let isMultiplayer = false; // Starts in local play mode by default
 let isVsComputer = false; // Tracks if playing against Computer AI
 let isComputerThinking = false; // Blocks user clicks during AI turn
+let roundCount = 1; // Track local round number
 let isServerConnected = false;
 let myName = 'Player';
 
@@ -346,6 +349,7 @@ function handleWin(winner) {
         gameStatusElement.classList.add('winner');
     }
     
+    clearHoverPreviews();
     cells.forEach(cell => {
         cell.classList.add('disabled');
     });
@@ -369,6 +373,7 @@ function handleDraw() {
     gameStatusElement.textContent = "🤝 It's a Draw! 🤝";
     gameStatusElement.classList.add('draw');
     
+    clearHoverPreviews();
     cells.forEach(cell => {
         cell.classList.add('disabled');
     });
@@ -387,12 +392,25 @@ function highlightWinningCells(combination) {
 
 // Celebrate win with animation
 function celebrateWin() {
-    const gameContainer = document.querySelector('.game-container');
-    gameContainer.style.animation = 'celebration 1s ease-in-out';
-    
-    setTimeout(() => {
-        gameContainer.style.animation = '';
-    }, 1000);
+    const gameContainer = document.querySelector('.board-card');
+    if (gameContainer) {
+        gameContainer.style.animation = 'celebration 1s ease-in-out';
+        setTimeout(() => {
+            gameContainer.style.animation = '';
+        }, 1000);
+    }
+}
+
+// Clear any pending mouseenter hover preview values
+function clearHoverPreviews() {
+    cells.forEach((cell, index) => {
+        if (gameBoard[index] === '') {
+            cell.style.background = '';
+            cell.style.opacity = '';
+            cell.textContent = '';
+            cell.classList.remove('x', 'o');
+        }
+    });
 }
 
 // Start a fresh match locally (offline)
@@ -401,6 +419,7 @@ function startNewMatch() {
     startingPlayer = 'X';
     gameBoard = ['', '', '', '', '', '', '', '', ''];
     gameActive = true;
+    roundCount = 1;
     scores = {
         X: 0,
         O: 0,
@@ -410,6 +429,8 @@ function startNewMatch() {
     cells.forEach(cell => {
         cell.textContent = '';
         cell.classList.remove('x', 'o', 'disabled', 'winning-cell');
+        cell.style.background = '';
+        cell.style.opacity = '';
     });
     
     gameStatusElement.textContent = 'New match started!';
@@ -426,6 +447,7 @@ function startNewMatch() {
 
 // Start the next round locally (offline)
 function startNewRound() {
+    roundCount++;
     // Alternate starting player
     startingPlayer = startingPlayer === 'X' ? 'O' : 'X';
     currentPlayer = startingPlayer;
@@ -434,6 +456,8 @@ function startNewRound() {
     cells.forEach(cell => {
         cell.textContent = '';
         cell.classList.remove('x', 'o', 'disabled', 'winning-cell');
+        cell.style.background = '';
+        cell.style.opacity = '';
     });
     
     gameStatusElement.classList.remove('winner', 'draw');
@@ -470,17 +494,76 @@ function clearScores() {
     updateScoreDisplay();
     startNewMatch();
 
-    const scoreBoard = document.querySelector('.score-board');
-    scoreBoard.style.animation = 'pulse 0.5s ease-in-out';
-    setTimeout(() => {
-        scoreBoard.style.animation = '';
-    }, 500);
+    const scoreBoard = document.querySelector('.scoreboard-card');
+    if (scoreBoard) {
+        scoreBoard.style.animation = 'pulse 0.5s ease-in-out';
+        setTimeout(() => {
+            scoreBoard.style.animation = '';
+        }, 500);
+    }
 }
 
 // Update current player display
 function updateCurrentPlayerDisplay() {
-    currentPlayerElement.textContent = currentPlayer;
-    currentPlayerElement.style.color = currentPlayer === 'X' ? '#e74c3c' : '#3498db';
+    if (currentPlayerElement) {
+        currentPlayerElement.textContent = currentPlayer;
+        currentPlayerElement.style.color = currentPlayer === 'X' ? '#38bdf8' : '#f43f5e';
+    }
+    
+    const turnMark = document.getElementById('turnMarkIndicator');
+    const turnText = document.getElementById('turnText');
+    const turnSubText = document.getElementById('turnSubText');
+    
+    if (turnMark) {
+        turnMark.textContent = currentPlayer;
+        // In original theme, Player X is Cyan (#38bdf8) and Player O is Red/Pink (#f43f5e)
+        turnMark.style.color = currentPlayer === 'X' ? '#38bdf8' : '#f43f5e';
+    }
+    
+    if (turnText) {
+        if (isMultiplayer) {
+            const isMyTurn = (Number(playerId) === 0 && currentPlayer === 'X') || (Number(playerId) === 1 && currentPlayer === 'O');
+            if (isMyTurn) {
+                turnText.textContent = "YOUR TURN";
+                if (turnSubText) turnSubText.textContent = "Make your move on the board";
+            } else {
+                turnText.textContent = "OPPONENT'S TURN";
+                if (turnSubText) turnSubText.textContent = "Waiting for opponent's move...";
+            }
+        } else if (isVsComputer) {
+            if (currentPlayer === 'X') {
+                turnText.textContent = "YOUR TURN";
+                if (turnSubText) turnSubText.textContent = "Make your move on the board";
+            } else {
+                turnText.textContent = "COMPUTER'S TURN";
+                if (turnSubText) turnSubText.textContent = "Computer is choosing a move...";
+            }
+        } else {
+            // Local offline
+            turnText.textContent = `PLAYER ${currentPlayer}'S TURN`;
+            if (turnSubText) turnSubText.textContent = "Make your move on the board";
+        }
+    }
+}
+
+// Update game info card in sidebar
+function updateGameInfoDisplay() {
+    const infoMode = document.getElementById('infoMode');
+    const infoRound = document.getElementById('infoRound');
+    
+    if (infoMode) {
+        if (isMultiplayer) {
+            infoMode.textContent = 'Multiplayer';
+        } else if (isVsComputer) {
+            infoMode.textContent = 'vs Computer';
+        } else {
+            infoMode.textContent = 'Local Offline';
+        }
+    }
+    
+    if (infoRound) {
+        infoRound.textContent = roundCount;
+    }
 }
 
 // Update score display
@@ -501,6 +584,7 @@ function updateScoreDisplay() {
 function updateDisplay() {
     updateCurrentPlayerDisplay();
     updateScoreDisplay();
+    updateGameInfoDisplay();
 }
 
 // Add bounce animation to CSS dynamically
@@ -725,6 +809,9 @@ function connectWebSocket() {
 }
 
 function showLobbyActiveState() {
+    if (lobbyCard) lobbyCard.classList.add('hidden');
+    if (roomDetailsCard) roomDetailsCard.classList.remove('hidden');
+    
     onlineActionsPanel.classList.add('hidden');
     createPanel.classList.add('hidden');
     joinPanel.classList.add('hidden');
@@ -733,10 +820,33 @@ function showLobbyActiveState() {
     connectedPlayersBox.classList.remove('hidden');
     chatBox.classList.remove('hidden');
     lobbySubtitle.textContent = 'Multiplayer Session Active';
+
+    // Enable Chat inputs in dashboard
+    if (chatInput) {
+        chatInput.removeAttribute('disabled');
+        chatInput.placeholder = 'Type a message...';
+    }
+    if (sendChatBtn) {
+        sendChatBtn.removeAttribute('disabled');
+    }
+    // Remove placeholder in chat
+    if (chatMessages) {
+        const placeholder = chatMessages.querySelector('.chat-placeholder');
+        if (placeholder) {
+            chatMessages.innerHTML = '';
+        }
+    }
 }
 
 function handleRoomStateUpdate(room) {
     console.log('[Room State Update] Players list:', room.players, 'Your playerId:', playerId);
+    
+    // Sync Room Code label in the active Room Details card
+    if (room.roomCode) {
+        roomCode = room.roomCode;
+        if (roomCodeLabel) roomCodeLabel.textContent = roomCode;
+        if (roomCodeBox) roomCodeBox.classList.remove('hidden');
+    }
     
     // 1. Sync players list
     connectedPlayers.innerHTML = '';
@@ -768,11 +878,12 @@ function handleRoomStateUpdate(room) {
     
     // 3. Sync Scores
     scores = room.scores;
-    updateScoreDisplay();
     
     // 4. Turn & game state enforcement
     currentPlayer = room.currentPlayer;
-    updateCurrentPlayerDisplay();
+    
+    // Update all display elements (scores, turn indicators, game mode status)
+    updateDisplay();
     
     gameStatusElement.classList.remove('winner', 'draw');
     
@@ -837,15 +948,32 @@ function appendChatMessage(author, message) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-message ${isSelf ? 'self' : 'other'}`;
     
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'chat-header';
+    
     const authorSpan = document.createElement('span');
-    authorSpan.className = 'msg-author';
+    authorSpan.className = 'chat-author';
     authorSpan.textContent = author;
     
-    const textSpan = document.createElement('span');
-    textSpan.textContent = message;
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'chat-time';
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    timeSpan.textContent = `${hours}:${minutes} ${ampm}`;
     
-    msgDiv.appendChild(authorSpan);
-    msgDiv.appendChild(textSpan);
+    headerDiv.appendChild(authorSpan);
+    headerDiv.appendChild(timeSpan);
+    
+    const textDiv = document.createElement('div');
+    textDiv.className = 'chat-text';
+    textDiv.textContent = message;
+    
+    msgDiv.appendChild(headerDiv);
+    msgDiv.appendChild(textDiv);
     
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -883,6 +1011,9 @@ document.addEventListener('DOMContentLoaded', () => {
         isMultiplayer = false;
         isVsComputer = true;
         gameActive = true;
+        
+        if (lobbyCard) lobbyCard.classList.add('hidden');
+        if (roomDetailsCard) roomDetailsCard.classList.remove('hidden');
         
         onlineActionsPanel.classList.add('hidden');
         lobbySubtitle.textContent = 'Single Player AI Mode Active';
@@ -996,4 +1127,29 @@ document.addEventListener('DOMContentLoaded', () => {
             sendChatMessage();
         }
     });
+
+    // Theme Toggle Handler
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeToggleIcon = document.getElementById('themeToggleIcon');
+    
+    // Load theme from localStorage (Default is dark matching screenshot)
+    const savedTheme = localStorage.getItem('gameTheme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        if (themeToggleIcon) themeToggleIcon.textContent = '🌙';
+    } else {
+        document.body.classList.remove('light-theme');
+        if (themeToggleIcon) themeToggleIcon.textContent = '☀️';
+    }
+
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            localStorage.setItem('gameTheme', isLight ? 'light' : 'dark');
+            if (themeToggleIcon) {
+                themeToggleIcon.textContent = isLight ? '🌙' : '☀️';
+            }
+        });
+    }
 });

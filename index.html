@@ -5,126 +5,236 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="/favicon3.png">
     <title>Tic Tac Toe Game</title>
+    <!-- Google Fonts for Modern Tech Theme -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Link to external CSS file -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-layout">
-        <div class="layout-spacer"></div>
-        <div class="game-container">
-            <h1>Tic Tac Toe</h1>
+    <div class="app-wrapper">
+        <!-- Top Header Bar -->
+        <header class="header-bar">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <div class="logo-row"><span>X</span><span>O</span></div>
+                    <div class="logo-row"><span>O</span><span>X</span></div>
+                </div>
+                <div class="logo-text">
+                    <h1>Tic Tac Toe</h1>
+                    <p>Play Online with Friends</p>
+                </div>
+            </div>
             
-            <!-- Connection Status Badge -->
-            <div class="server-status-badge">
-                Connection: <span id="serverStatusText">Connecting...</span> <span id="serverStatusIndicator" class="status-indicator yellow">●</span>
-                <span id="onlineCountSeparator" class="hidden"> | </span>
-                <span id="onlineCountContainer" class="hidden">👥 <span id="onlineCountValue">0</span> Online</span>
+            <div class="header-status">
+                <div class="server-status-badge">
+                    <span id="serverStatusIndicator" class="status-indicator yellow">●</span>
+                    <span id="serverStatusText">Connecting...</span>
+                    <span id="onlineCountSeparator" class="hidden">|</span>
+                    <span id="onlineCountContainer" class="hidden"><span id="onlineCountValue">0</span> Players Online</span>
+                </div>
             </div>
             
-            <!-- Score Board -->
-            <div class="score-board">
-                <div class="score">
-                    <h3>Player X</h3>
-                    <span id="scoreX">0</span>
-                </div>
-                <div class="score">
-                    <h3>Draws</h3>
-                    <span id="scoreDraw">0</span>
-                </div>
-                <div class="score">
-                    <h3>Player O</h3>
-                    <span id="scoreO">0</span>
+            <div class="header-actions">
+                <button class="header-btn" onclick="alert('How to Play: Get 3 in a row vertically, horizontally, or diagonally to win a round. First to 5 wins!')">
+                    <span class="icon">❓</span> How to Play
+                </button>
+                <button class="header-btn" onclick="alert('Settings: You are connected to the main Tic Tac Toe socket server.')">
+                    <span class="icon">⚙️</span> Settings
+                </button>
+                <div class="theme-toggle" id="themeToggleBtn">
+                    <span id="themeToggleIcon">☀️</span>
                 </div>
             </div>
+        </header>
 
-            <!-- Game Information -->
-            <div class="game-info">
-                Current Player: <span class="current-player" id="currentPlayer">X</span>
-            </div>
-            <div class="match-info">
-                Target: <strong>5 Wins</strong> | First to 5 wins the match
-            </div>
+        <!-- Main Layout (3 Columns Grid) -->
+        <main class="app-layout">
+            
+            <!-- Column 1: Left Sidebar (Room & Setup Panel) -->
+            <section class="left-panel">
+                
+                <!-- Lobby Setup Card (shown when NOT in room) -->
+                <div id="lobbyCard" class="glass-card lobby-card">
+                    <div class="card-header">
+                        <h2>Game Setup</h2>
+                        <p class="subtitle" id="lobbySubtitle">Choose a game mode to start playing.</p>
+                    </div>
+                    
+                    <div class="mode-panel" id="onlineActionsPanel">
+                        <button id="playAIBtn" class="action-btn ai-btn">Play vs Computer (AI)</button>
+                        <div class="lobby-actions">
+                            <button id="createRoomBtn" class="action-btn primary">Create Room</button>
+                            <button id="joinRoomBtn" class="action-btn secondary">Join Room</button>
+                        </div>
+                    </div>
 
-            <!-- Game Board -->
-            <div class="game-board" id="gameBoard">
-                <button class="cell" data-index="0"></button>
-                <button class="cell" data-index="1"></button>
-                <button class="cell" data-index="2"></button>
-                <button class="cell" data-index="3"></button>
-                <button class="cell" data-index="4"></button>
-                <button class="cell" data-index="5"></button>
-                <button class="cell" data-index="6"></button>
-                <button class="cell" data-index="7"></button>
-                <button class="cell" data-index="8"></button>
-            </div>
+                    <div id="createPanel" class="mode-panel hidden">
+                        <label for="createNameInput">Your Name</label>
+                        <input id="createNameInput" type="text" placeholder="Enter your name" />
+                        <button id="createActionBtn" class="action-btn primary">Create</button>
+                        <button class="action-btn back-to-online-btn">← Back</button>
+                    </div>
 
-            <!-- Game Status -->
-            <div class="game-status" id="gameStatus">
-                Ready to play!
-            </div>
-
-            <!-- Controls -->
-            <div class="controls">
-                <button class="reset-btn" id="resetBtn">New Game</button>
-                <button class="reset-btn" id="clearScoreBtn">Clear Scores</button>
-            </div>
-        </div>
-
-        <div class="side-panel">
-            <div id="lobby" class="lobby-card">
-                <h2>Play Online</h2>
-                <p class="lobby-subtitle" id="lobbySubtitle">Create a room or join with a code to play with a friend.</p>
-
-                <!-- Online Lobby Actions -->
-                <div class="mode-panel" id="onlineActionsPanel">
-                    <button id="playAIBtn" class="action-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; width: 100%; margin-bottom: 12px; font-weight: bold; border: none; border-radius: 25px;">Play vs Computer (AI)</button>
-                    <div class="lobby-actions">
-                        <button id="createRoomBtn" class="action-btn primary">Create Room</button>
-                        <button id="joinRoomBtn" class="action-btn secondary">Join Room</button>
+                    <div id="joinPanel" class="mode-panel hidden">
+                        <label for="joinNameInput">Your Name</label>
+                        <input id="joinNameInput" type="text" placeholder="Enter your name" />
+                        <label for="roomCodeInput">Room Code</label>
+                        <input id="roomCodeInput" type="text" placeholder="Enter room code" />
+                        <button id="joinActionBtn" class="action-btn secondary">Join</button>
+                        <button class="action-btn back-to-online-btn">← Back</button>
                     </div>
                 </div>
 
-                <div id="createPanel" class="mode-panel hidden">
-                    <label for="createNameInput">Your Name</label>
-                    <input id="createNameInput" type="text" placeholder="Enter your name" />
-                    <button id="createActionBtn" class="action-btn primary">Create</button>
-                    <button class="action-btn back-to-online-btn" style="background: rgba(255,255,255,0.15); color: #fff;">← Back</button>
-                </div>
+                <!-- Active Room Details Card (shown when IN room/AI game) -->
+                <div id="roomDetailsCard" class="glass-card room-details-card hidden">
+                    <div class="card-header">
+                        <h2>Room</h2>
+                    </div>
 
-                <div id="joinPanel" class="mode-panel hidden">
-                    <label for="joinNameInput">Your Name</label>
-                    <input id="joinNameInput" type="text" placeholder="Enter your name" />
-                    <label for="roomCodeInput">Room Code</label>
-                    <input id="roomCodeInput" type="text" placeholder="Enter room code" />
-                    <button id="joinActionBtn" class="action-btn secondary">Join</button>
-                    <button class="action-btn back-to-online-btn" style="background: rgba(255,255,255,0.15); color: #fff;">← Back</button>
-                </div>
+                    <!-- Room Code Box -->
+                    <div id="roomCodeBox" class="room-code-box hidden">
+                        <span class="label">Room Code</span>
+                        <div class="code-container">
+                            <strong id="roomCodeLabel">-</strong>
+                            <button id="copyRoomCodeBtn" class="copy-btn" title="Copy Room Code">📋</button>
+                        </div>
+                        <p class="share-notice">Share this code with your friend</p>
+                    </div>
 
-                <div id="roomCodeBox" class="room-code-box hidden">
-                    <span>Room Code:</span>
-                    <strong id="roomCodeLabel">-</strong>
-                    <button id="copyRoomCodeBtn" class="copy-btn" title="Copy Room Code">📋</button>
-                </div>
+                    <!-- Connected Players list -->
+                    <div id="connectedPlayersBox" class="connected-box">
+                        <h3>Players</h3>
+                        <div id="connectedPlayers">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
 
-                <div id="connectedPlayersBox" class="connected-box hidden">
-                    <h3>Players</h3>
-                    <div id="connectedPlayers"></div>
-                    <button id="leaveRoomBtn" class="action-btn" style="width: 100%; margin-top: 15px; background: linear-gradient(45deg, #ff6b6b, #ee5a52); color: white;">Leave Room</button>
-                </div>
-
-                <!-- Chat Box -->
-                <div id="chatBox" class="chat-box hidden">
-                    <h3>Room Chat</h3>
-                    <div id="chatMessages" class="chat-messages"></div>
-                    <div class="chat-input-container">
-                        <input id="chatInput" type="text" placeholder="Type message..." />
-                        <button id="sendChatBtn">Send</button>
+                    <!-- Room Action Buttons -->
+                    <div class="room-actions">
+                        <button id="leaveRoomBtn" class="action-btn exit-btn">Leave Room</button>
+                        <button id="clearScoreBtn" class="action-btn clear-scores-btn">Clear Scores</button>
                     </div>
                 </div>
 
-                <p id="roomStatus">Choose a game mode to start.</p>
-            </div>
-        </div>
+                <!-- Game Info Panel (always visible) -->
+                <div class="glass-card game-info-card">
+                    <div class="card-header">
+                        <h2>Game Info</h2>
+                    </div>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="label">Mode</span>
+                            <span class="value" id="infoMode">Offline</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Round</span>
+                            <span class="value" id="infoRound">1</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Best of</span>
+                            <span class="value">5 Wins</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Column 2: Center (Game Board Panel) -->
+            <section class="center-panel">
+                <!-- Turn status header -->
+                <div class="turn-header-card glass-card">
+                    <div class="turn-indicator">
+                        <span class="turn-dot" id="turnMarkIndicator">X</span>
+                        <h2 id="turnText">YOUR TURN</h2>
+                    </div>
+                    <p id="turnSubText">Make your move on the board</p>
+                </div>
+
+                <!-- Main Game Board Container -->
+                <div class="board-card glass-card">
+                    <div class="game-board" id="gameBoard">
+                        <button class="cell" data-index="0"></button>
+                        <button class="cell" data-index="1"></button>
+                        <button class="cell" data-index="2"></button>
+                        <button class="cell" data-index="3"></button>
+                        <button class="cell" data-index="4"></button>
+                        <button class="cell" data-index="5"></button>
+                        <button class="cell" data-index="6"></button>
+                        <button class="cell" data-index="7"></button>
+                        <button class="cell" data-index="8"></button>
+                    </div>
+
+                    <div class="game-status-badge">
+                        <span id="gameStatus">Ready to play!</span>
+                    </div>
+                </div>
+
+                <!-- Game controls bottom -->
+                <div class="board-controls">
+                    <button class="control-btn reset-round-btn" id="resetBtn">Reset Round</button>
+                    <button class="control-btn new-round-btn" onclick="alert('Rounds start automatically when the grid is reset.')">New Round</button>
+                </div>
+            </section>
+
+            <!-- Column 3: Right Sidebar (Scoreboard & Chat Panel) -->
+            <section class="right-panel">
+                <!-- Scoreboard Card -->
+                <div class="glass-card scoreboard-card">
+                    <div class="card-header">
+                        <h2>🏆 Scoreboard</h2>
+                    </div>
+                    <div class="score-display">
+                        <div class="score-item x-score">
+                            <span class="mark">X</span>
+                            <span class="label">Player (You)</span>
+                            <span class="val" id="scoreX">0</span>
+                        </div>
+                        <div class="score-item o-score">
+                            <span class="mark">O</span>
+                            <span class="label">Opponent</span>
+                            <span class="val" id="scoreO">0</span>
+                        </div>
+                        <div class="score-item draw-score">
+                            <span class="mark">=</span>
+                            <span class="label">Draws</span>
+                            <span class="val" id="scoreDraw">0</span>
+                        </div>
+                    </div>
+                    <div class="score-footer">
+                        <p>⭐ First to 5 wins</p>
+                    </div>
+                </div>
+
+                <!-- Chat Box Card -->
+                <div class="glass-card chat-box-card">
+                    <div class="card-header">
+                        <h2>Chat</h2>
+                    </div>
+                    <!-- Chat area -->
+                    <div id="chatBox" class="chat-area-container">
+                        <div id="chatMessages" class="chat-messages">
+                            <!-- Populated dynamically -->
+                            <div class="chat-placeholder">Join a room to start chatting with your friend!</div>
+                        </div>
+                        <div class="chat-input-container">
+                            <input id="chatInput" type="text" placeholder="Type a message..." disabled />
+                            <button id="sendChatBtn" class="send-btn" disabled>
+                                <svg viewBox="0 0 24 24" class="send-icon">
+                                    <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer Bar -->
+        <footer class="footer-bar">
+            <p class="footer-left">❤️ Enjoying the game? Share it with your friends!</p>
+            <p class="footer-right">Made with ❤️ for Tic Tac Toe lovers</p>
+        </footer>
     </div>
 
     <!-- Link to external JavaScript file -->
