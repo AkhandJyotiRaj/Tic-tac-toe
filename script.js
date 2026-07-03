@@ -36,6 +36,7 @@ const scoreDrawElement = document.getElementById('scoreDraw');
 
 // Multiplayer DOM elements
 const onlineActionsPanel = document.getElementById('onlineActionsPanel');
+const playAIBtn = document.getElementById('playAIBtn');
 const createRoomBtn = document.getElementById('createRoomBtn');
 const joinRoomBtn = document.getElementById('joinRoomBtn');
 const createPanel = document.getElementById('createPanel');
@@ -70,6 +71,8 @@ let socket = null;
 let roomCode = null;
 let playerId = null; // 0 for X (creator), 1 for O (joiner)
 let isMultiplayer = false; // Starts in local play mode by default
+let isVsComputer = false; // Tracks if playing against Computer AI
+let isComputerThinking = false; // Blocks user clicks during AI turn
 let isServerConnected = false;
 let myName = 'Player';
 
@@ -146,6 +149,22 @@ function handleCellClick(index) {
         return;
     }
 
+    if (isVsComputer) {
+        // Enforce user turn (User is always X in AI mode) and block clicks if computer is thinking
+        if (currentPlayer !== 'X' || isComputerThinking) return;
+
+        makeMove(index);
+        checkGameResult();
+        
+        if (gameActive) {
+            switchPlayer();
+            isComputerThinking = true;
+            gameStatusElement.textContent = 'Computer is thinking...';
+            setTimeout(makeComputerMove, 600);
+        }
+        return;
+    }
+
     makeMove(index);
     checkGameResult();
     if (gameActive) {
@@ -172,6 +191,101 @@ function makeMove(index) {
 function switchPlayer() {
     currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
     updateCurrentPlayerDisplay();
+}
+
+// Computer AI move logic
+function makeComputerMove() {
+    if (!isVsComputer || !isComputerThinking) return;
+
+    let move = null;
+
+    // 90% chance to play casual, 10% chance to play smart (makes it super easy)
+    let playSmart = Math.random() >= 0.90;
+
+    // Force casual if computer already has a round win
+    if (scores && scores.O >= 1) {
+        playSmart = false;
+    }
+
+    if (playSmart) {
+        // 1. Find winning move for AI (O)
+        move = findWinningOrBlockingMove('O');
+        if (move === null) {
+            // 2. Find blocking move for Player (X)
+            move = findWinningOrBlockingMove('X');
+        }
+    }
+
+    // Fallback selection of empty cells
+    if (move === null) {
+        // Collect all empty cells
+        let emptyCells = [];
+        gameBoard.forEach((val, idx) => {
+            if (val === '') emptyCells.push(idx);
+        });
+
+        // If computer already won 1 round, avoid picking any empty cell that completes a win!
+        if (scores && scores.O >= 1 && emptyCells.length > 1) {
+            const nonWinningCells = emptyCells.filter(idx => !wouldMoveWin(idx, 'O'));
+            if (nonWinningCells.length > 0) {
+                emptyCells = nonWinningCells;
+            }
+        }
+
+        // Choose any random cell from the allowed empty cells list (makes starting moves completely random)
+        if (emptyCells.length > 0) {
+            move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        }
+    }
+
+    if (move !== null) {
+        makeMove(move);
+        checkGameResult();
+        isComputerThinking = false;
+        if (gameActive) {
+            switchPlayer();
+            gameStatusElement.textContent = 'Your turn!';
+        }
+    } else {
+        isComputerThinking = false;
+    }
+}
+
+// Helper to check if a specific move would win the game for a symbol
+function wouldMoveWin(index, symbol) {
+    // Temporarily apply symbol
+    gameBoard[index] = symbol;
+    
+    // Check if it satisfies any winning combinations
+    let isWin = false;
+    for (let combination of winningCombinations) {
+        const [a, b, c] = combination;
+        if (gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]) {
+            isWin = true;
+            break;
+        }
+    }
+    
+    // Restore state
+    gameBoard[index] = '';
+    return isWin;
+}
+
+function findWinningOrBlockingMove(symbol) {
+    for (let combination of winningCombinations) {
+        const [a, b, c] = combination;
+        const values = [gameBoard[a], gameBoard[b], gameBoard[c]];
+        
+        const countSymbol = values.filter(v => v === symbol).length;
+        const countEmpty = values.filter(v => v === '').length;
+        
+        if (countSymbol === 2 && countEmpty === 1) {
+            if (gameBoard[a] === '') return a;
+            if (gameBoard[b] === '') return b;
+            if (gameBoard[c] === '') return c;
+        }
+    }
+    return null;
 }
 
 // Check game result locally (offline)
@@ -316,17 +430,28 @@ function startNewRound() {
     startingPlayer = startingPlayer === 'X' ? 'O' : 'X';
     currentPlayer = startingPlayer;
     gameBoard = ['', '', '', '', '', '', '', '', ''];
-    gameActive = true;
     
     cells.forEach(cell => {
         cell.textContent = '';
         cell.classList.remove('x', 'o', 'disabled', 'winning-cell');
     });
     
-    gameStatusElement.textContent = `Round started! Player ${startingPlayer} goes first.`;
     gameStatusElement.classList.remove('winner', 'draw');
-    
     updateDisplay();
+    
+    gameActive = true;
+    if (isVsComputer) {
+        if (currentPlayer === 'O') {
+            gameStatusElement.textContent = 'Round started! Computer is thinking...';
+            isComputerThinking = true;
+            setTimeout(makeComputerMove, 700);
+        } else {
+            gameStatusElement.textContent = 'Round started! Your turn (Player X).';
+            isComputerThinking = false;
+        }
+    } else {
+        gameStatusElement.textContent = `Round started! Player ${startingPlayer} goes first.`;
+    }
     
     const boardElement = document.querySelector('.game-board');
     boardElement.style.animation = 'pulse 0.5s ease-in-out';
@@ -752,6 +877,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Connect to WebSocket server
     connectWebSocket();
     
+    
+    // Play against AI
+    playAIBtn.addEventListener('click', () => {
+        isMultiplayer = false;
+        isVsComputer = true;
+        gameActive = true;
+        
+        onlineActionsPanel.classList.add('hidden');
+        lobbySubtitle.textContent = 'Single Player AI Mode Active';
+        roomStatusElement.textContent = 'Playing against Computer AI.';
+        
+        // Show exit option in players box
+        connectedPlayersBox.classList.remove('hidden');
+        connectedPlayers.innerHTML = `
+            <div class="player-tag player-x"><span style="font-weight:bold;">Player X (You)</span><span class="player-mark">X</span></div>
+            <div class="player-tag player-o"><span style="font-weight:bold;">Computer (AI)</span><span class="player-mark">O</span></div>
+        `;
+        leaveRoomBtn.textContent = 'Exit AI Mode';
+        leaveRoomBtn.style.background = 'rgba(255,255,255,0.15)';
+        
+        startNewMatch();
+    });
+
     // Back navigation listeners
     const backToOnlineBtns = document.querySelectorAll('.back-to-online-btn');
     backToOnlineBtns.forEach(btn => {
