@@ -475,7 +475,7 @@ function loadGameStats() {
 // --- WebSocket / Multiplayer ---
 
 function connectWebSocket() {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws';
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const wsUrl = `${wsProtocol}://${window.location.host}`;
     
     socket = new WebSocket(wsUrl);
